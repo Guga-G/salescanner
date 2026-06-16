@@ -1,0 +1,9 @@
+# Runtime dependencies (FETCH_MODE=api path - all the GitHub Actions path needs).
+requests>=2.31
+beautifulsoup4>=4.12
+python-dotenv>=1.0
+
+# FETCH_MODE=browser is optional and used only for the local Windows fallback.
+# It is imported lazily, so it is NOT required for the api path. Install with:
+#   pip install playwright && python -m playwright install chromium
+# playwright>=1.44
