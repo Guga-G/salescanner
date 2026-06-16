@@ -2,6 +2,9 @@
 
 A serverless price and promotion scanner that checks a retail product page once a day and emails me the moment it goes on sale or runs a Buy 1 Get 1 Free deal, with a direct link to the product.
 
+## What it looks like
+<img src="screenshots/email-notification.PNG" alt="Deal alert email" width="320">
+
 ## Why I built it
 I wanted to be alerted the instant a specific product dropped in price or hit a BOGO offer without manually checking the site every day. It began as a simple "notify me on a sale" idea and grew into a small but complete piece of automation: fetching past bot protection, parsing, scheduling, deduplication and transactional email, all running on free tiers.
 
