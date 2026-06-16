@@ -1,0 +1,72 @@
+name: scan
+
+on:
+  schedule:
+    # 05:00 UTC daily = 09:00 Tbilisi (Georgia is UTC+4, no DST, so this stays correct).
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
+
+# Needed so the final step can commit state.json + history.jsonl back to the repo.
+permissions:
+  contents: write
+
+concurrency:
+  group: scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run scanner
+        env:
+          FETCH_MODE: api
+          PRODUCT_URL: https://www.muscleandstrength.com/store/r1-charged-creatine.html
+          STORE_VIEW: us
+          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          NOTIFY_DEAL_ENDED: "false"
+          HEARTBEAT_ENABLED: "true"
+          HEARTBEAT_FAIL_THRESHOLD: "3"
+        run: python -m scanner.main
+
+      - name: Upload failure dump
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: last-failure-html
+          path: debug/last-failure.html
+          if-no-files-found: ignore
+
+
+      - name: Commit updated state
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Stage each file only if it exists: history.jsonl is absent until the first
+          # successful parse, and "git add a b" aborts (staging nothing) if b is missing.
+          for f in state.json history.jsonl; do
+            [ -f "$f" ] && git add "$f"
+          done
+          if git diff --cached --quiet; then
+            echo "No state changes to commit."
+          else
+            git commit -m "chore: update scanner state [skip ci]"
+            git push
+          fi
